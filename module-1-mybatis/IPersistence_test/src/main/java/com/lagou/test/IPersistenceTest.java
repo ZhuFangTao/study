@@ -38,7 +38,7 @@ public class IPersistenceTest {
         IUserDao userDao = sqlSession.getMapper(IUserDao.class);
         List<User> userList = userDao.findAll();
         for (User user : userList) {
-            user.toString();
+            System.out.println(user.toString());
         }
     }
 
