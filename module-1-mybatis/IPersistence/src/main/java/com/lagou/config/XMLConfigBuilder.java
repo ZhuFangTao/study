@@ -53,12 +53,7 @@ public class XMLConfigBuilder {
             InputStream resourceAsSteam = Resources.getResourceAsSteam(mapperPath);
             XMLMapperBuilder xmlMapperBuilder = new XMLMapperBuilder(configuration);
             xmlMapperBuilder.parse(resourceAsSteam);
-
         }
-
-
-
-
         return configuration;
     }
 

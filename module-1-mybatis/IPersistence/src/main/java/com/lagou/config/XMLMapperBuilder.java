@@ -25,20 +25,21 @@ public class XMLMapperBuilder {
 
         String namespace = rootElement.attributeValue("namespace");
 
-        List<Element> list = rootElement.selectNodes("//select");
+        List<Element> list = rootElement.selectNodes("//select|//insert|//update|//delete");
         for (Element element : list) {
             String id = element.attributeValue("id");
             String resultType = element.attributeValue("resultType");
-            String paramterType = element.attributeValue("paramterType");
+            String parameterType = element.attributeValue("parameterType");
+            String sqlCommandType= element.getName().toUpperCase();
             String sqlText = element.getTextTrim();
             MappedStatement mappedStatement = new MappedStatement();
             mappedStatement.setId(id);
             mappedStatement.setResultType(resultType);
-            mappedStatement.setParamterType(paramterType);
+            mappedStatement.setParameterType(parameterType);
+            mappedStatement.setSqlCommandType(sqlCommandType);
             mappedStatement.setSql(sqlText);
             String key = namespace+"."+id;
             configuration.getMappedStatementMap().put(key,mappedStatement);
-
         }
 
     }

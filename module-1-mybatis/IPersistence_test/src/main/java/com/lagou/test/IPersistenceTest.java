@@ -6,6 +6,7 @@ import com.lagou.pojo.User;
 import com.lagou.sqlSession.SqlSession;
 import com.lagou.sqlSession.SqlSessionFactory;
 import com.lagou.sqlSession.SqlSessionFactoryBuilder;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.InputStream;
@@ -14,34 +15,56 @@ import java.util.List;
 public class IPersistenceTest {
 
     @Test
-    public void test() throws Exception {
+    public void testUpdate() throws Exception {
         InputStream resourceAsSteam = Resources.getResourceAsSteam("sqlMapConfig.xml");
         SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(resourceAsSteam);
         SqlSession sqlSession = sqlSessionFactory.openSession();
-
         //调用
         User user = new User();
         user.setId(1);
-        user.setUsername("张三");
-      /*  User user2 = sqlSession.selectOne("user.selectOne", user);
-
-        System.out.println(user2);*/
-
-       /* List<User> users = sqlSession.selectList("user.selectList");
-        for (User user1 : users) {
-            System.out.println(user1);
-        }*/
-
+        user.setUsername("hello world");
+        user.setPassword("123456");
+        user.setBirthday("2010-01-01");
         IUserDao userDao = sqlSession.getMapper(IUserDao.class);
-
-        List<User> all = userDao.findAll();
-        for (User user1 : all) {
-            System.out.println(user1);
-        }
-
-
+        userDao.updateUserById(user);
     }
 
+    @Test
+    public void testFindAll() throws Exception {
+        InputStream resourceAsSteam = Resources.getResourceAsSteam("sqlMapConfig.xml");
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(resourceAsSteam);
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        //调用
+        IUserDao userDao = sqlSession.getMapper(IUserDao.class);
+        List<User> userList = userDao.findAll();
+        for (User user : userList) {
+            user.toString();
+        }
+    }
+
+    @Test
+    public void delete() throws Exception {
+        InputStream resourceAsSteam = Resources.getResourceAsSteam("sqlMapConfig.xml");
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(resourceAsSteam);
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        IUserDao userDao = sqlSession.getMapper(IUserDao.class);
+        userDao.deleteById(1);
+    }
+
+
+    @Test
+    public void insert() throws Exception {
+        InputStream resourceAsSteam = Resources.getResourceAsSteam("sqlMapConfig.xml");
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(resourceAsSteam);
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        IUserDao userDao = sqlSession.getMapper(IUserDao.class);
+        User user = new User();
+        user.setId(10);
+        user.setUsername("juice");
+        user.setPassword("123");
+        user.setBirthday("2020-01-01");
+        userDao.insert(user);
+    }
 
 
 }

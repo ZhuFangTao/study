@@ -18,16 +18,15 @@ import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.List;
 
-public class simpleExecutor implements  Executor {
+public class SimpleExecutor implements Executor {
 
 
-    @Override                                                                                //user
+    @Override
     public <E> List<E> query(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
         // 1. 注册驱动，获取连接
         Connection connection = configuration.getDataSource().getConnection();
-
         // 2. 获取sql语句 : select * from user where id = #{id} and username = #{username}
-            //转换sql语句： select * from user where id = ? and username = ? ，转换的过程中，还需要对#{}里面的值进行解析存储
+        //转换sql语句： select * from user where id = ? and username = ? ，转换的过程中，还需要对#{}里面的值进行解析存储
         String sql = mappedStatement.getSql();
         BoundSql boundSql = getBoundSql(sql);
 
@@ -35,23 +34,20 @@ public class simpleExecutor implements  Executor {
         PreparedStatement preparedStatement = connection.prepareStatement(boundSql.getSqlText());
 
         // 4. 设置参数
-            //获取到了参数的全路径
-         String paramterType = mappedStatement.getParamterType();
-         Class<?> paramtertypeClass = getClassType(paramterType);
+        //获取到了参数的全路径
+        String parameterType = mappedStatement.getParameterType();
+        Class<?> parameterTypeClass = getClassType(parameterType);
 
         List<ParameterMapping> parameterMappingList = boundSql.getParameterMappingList();
         for (int i = 0; i < parameterMappingList.size(); i++) {
             ParameterMapping parameterMapping = parameterMappingList.get(i);
             String content = parameterMapping.getContent();
-
             //反射
-            Field declaredField = paramtertypeClass.getDeclaredField(content);
+            Field declaredField = parameterTypeClass.getDeclaredField(content);
             //暴力访问
             declaredField.setAccessible(true);
             Object o = declaredField.get(params[0]);
-
-            preparedStatement.setObject(i+1,o);
-
+            preparedStatement.setObject(i + 1, o);
         }
 
 
@@ -63,8 +59,8 @@ public class simpleExecutor implements  Executor {
         ArrayList<Object> objects = new ArrayList<>();
 
         // 6. 封装返回结果集
-        while (resultSet.next()){
-            Object o =resultTypeClass.newInstance();
+        while (resultSet.next()) {
+            Object o = resultTypeClass.newInstance();
             //元数据
             ResultSetMetaData metaData = resultSet.getMetaData();
             for (int i = 1; i <= metaData.getColumnCount(); i++) {
@@ -77,29 +73,73 @@ public class simpleExecutor implements  Executor {
                 //使用反射或者内省，根据数据库表和实体的对应关系，完成封装
                 PropertyDescriptor propertyDescriptor = new PropertyDescriptor(columnName, resultTypeClass);
                 Method writeMethod = propertyDescriptor.getWriteMethod();
-                writeMethod.invoke(o,value);
-
-
+                writeMethod.invoke(o, value);
             }
             objects.add(o);
-
         }
-            return (List<E>) objects;
+        return (List<E>) objects;
+    }
+
+
+    @Override
+    public int doUpdate(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
+        Connection connection = configuration.getDataSource().getConnection();
+        BoundSql boundSql = getBoundSql(mappedStatement.getSql());
+        PreparedStatement preparedStatement = connection.prepareStatement(boundSql.getSqlText());
+        String parameterType = mappedStatement.getParameterType();
+        Class<?> parameterTypeClass = getClassType(parameterType);
+        List<ParameterMapping> parameterMappingList = boundSql.getParameterMappingList();
+        //如果是基础类型则直接赋值
+        if (isBaseType(parameterTypeClass)) {
+            try {
+                for (int i = 0; i < parameterMappingList.size(); i++) {
+                    preparedStatement.setObject(i + 1, params[i]);
+                }
+            } catch (IndexOutOfBoundsException e) {
+                throw new RuntimeException(mappedStatement.getId() + " 参数数量不匹配");
+            }
+        } else {
+            for (int i = 0; i < parameterMappingList.size(); i++) {
+                ParameterMapping parameterMapping = parameterMappingList.get(i);
+                String content = parameterMapping.getContent();
+                //反射
+                Field declaredField = parameterTypeClass.getDeclaredField(content);
+                //暴力访问
+                declaredField.setAccessible(true);
+                Object o = declaredField.get(params[0]);
+                preparedStatement.setObject(i + 1, o);
+            }
+        }
+        return preparedStatement.executeUpdate();
+    }
+
+    private Class<?> getClassType(String parameterType) throws ClassNotFoundException {
+        if (parameterType != null) {
+            Class<?> aClass = Class.forName(parameterType);
+            return aClass;
+        }
+        return null;
 
     }
 
-    private Class<?> getClassType(String paramterType) throws ClassNotFoundException {
-        if(paramterType!=null){
-            Class<?> aClass = Class.forName(paramterType);
-            return aClass;
+    public static boolean isBaseType(Class className) {
+        if (className.equals(java.lang.Integer.class) ||
+                className.equals(java.lang.Byte.class) ||
+                className.equals(java.lang.Long.class) ||
+                className.equals(java.lang.Double.class) ||
+                className.equals(java.lang.Float.class) ||
+                className.equals(java.lang.Character.class) ||
+                className.equals(java.lang.Short.class) ||
+                className.equals(java.lang.Boolean.class)) {
+            return true;
         }
-         return null;
-
+        return false;
     }
 
 
     /**
      * 完成对#{}的解析工作：1.将#{}使用？进行代替，2.解析出#{}里面的值进行存储
+     *
      * @param sql
      * @return
      */
@@ -112,8 +152,8 @@ public class simpleExecutor implements  Executor {
         //#{}里面解析出来的参数名称
         List<ParameterMapping> parameterMappings = parameterMappingTokenHandler.getParameterMappings();
 
-        BoundSql boundSql = new BoundSql(parseSql,parameterMappings);
-         return boundSql;
+        BoundSql boundSql = new BoundSql(parseSql, parameterMappings);
+        return boundSql;
 
     }
 
